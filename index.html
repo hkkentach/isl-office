@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISL AI Mobile Controller</title>
+    <style>
+        :root { --primary: #1A365D; --bg: #F7FAFC; --card: #FFFFFF; --text: #2D3748; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding: 15px; }
+        .header { background: var(--primary); color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; font-weight: bold; font-size: 1.2rem; }
+        .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem; color: #4A5568; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 15px; font-size: 1rem; }
+        button { width: 100%; background: #3182CE; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #2B6CB0; }
+        .status-box { text-align: center; color: #718096; display: none; margin-top: 15px; font-weight: bold; }
+        .result-box { display: none; background: #EBF8FF; border-left: 4px solid #3182CE; padding: 15px; border-radius: 4px; margin-top: 15px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <div class="header">🏛️ ISL AI REMOTE COMMANDER</div>
+
+    <div class="card">
+        <label>👤 操縦者名</label>
+        <input type="text" id="senderName" value="川村ボス">
+        
+        <label>💬 Windows遠隔操縦・有料AIプロンプト流し込み</label>
+        <textarea id="messageContent" rows="5" placeholder="例: 今Windowsで開いているChatGPTに『新しいファイアウォールの構成案を作って』と入力して送信してください。"></textarea>
+        
+        <button onclick="sendAgentCommand()">🚀 命令をLinux中継サーバーへ電波送信</button>
+        <div class="status-box" id="loader">⏳ トンネルを経由して新マシンのLinuxからWindowsを遠隔操作中...</div>
+        <div class="result-box" id="result"></div>
+    </div>
+
+    <script>
+        async function sendAgentCommand() {
+            const sender = document.getElementById('senderName').value;
+            const msg = document.getElementById('messageContent').value;
+            if(!msg) return alert('命令内容を入力してください');
+
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            // 🔗 【超重要】Linux Mint側で動いている「localhost.run」等のトンネルURLをここに貼ります！
+            // まだLinux側のトンネルを開いていない場合は、テスト用にLocalのURLのままでも、PCのブラウザからテスト可能です。
+            const linuxTunnelUrl = "http://localhost:5000"; 
+
+            try {
+                const response = await fetch(`${linuxTunnelUrl}/api/office/action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sender_name: sender, message: msg })
+                });
+                const data = await response.json();
+
+                if(response.ok) {
+                    document.getElementById('result').innerText = "✅ サーバー応答:\n" + data.message;
+                    document.getElementById('result').style.display = 'block';
+                } else {
+                    alert('エラーが発生しました: ' + data.detail);
+                }
+            } catch (error) {
+                alert('Linux中継サーバーと通信できませんでした。URLとトンネルの起動を確認してください。');
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
