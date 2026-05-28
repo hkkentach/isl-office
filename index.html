@@ -3,92 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISL AI Virtual Office</title>
-    <style>
-        :root { --primary: #1A365D; --bg: #F7FAFC; --card: #FFFFFF; --text: #2D3748; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg); color: var(--text); padding: 15px; }
-        .header { background: var(--primary); color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; font-weight: bold; font-size: 1.2rem; }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; color: #4A5568; }
-        input, textarea { width: 100%; padding: 12px; border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 12px; font-size: 1rem; }
-        button { width: 100%; background: #3182CE; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #2B6CB0; }
-        .agent-box { border-left: 4px solid #3182CE; padding-left: 10px; margin-top: 15px; background: #EBF8FF; padding: 10px; border-radius: 4px; }
-        .cs { border-color: #3182CE; background: #EBF8FF; }
-        .tech { border-color: #319795; background: #E6FFFA; }
-        .sales { border-color: #DD6B20; background: #FFFAF0; }
-        .loading { text-align: center; color: #718096; display: none; margin: 10px 0; }
-    </style>
+    <title>ISL AI仮想オフィス窓口</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col antialiased">
 
-    <div class="header">🏛️ ISL AI MOBILE OFFICE</div>
-
-    <div class="card">
-        <label>👤 顧客氏名（名簿照合用）</label>
-        <input type="text" id="senderName" value="川村 健太" placeholder="例: 川村 健太">
-        
-        <label>💬 お問い合わせ内容・依頼</label>
-        <textarea id="messageContent" rows="4" placeholder="例: Fortinetのファイアウォールを2台レンタルしたい。見積もりをください。"></textarea>
-        
-        <button onclick="launchAIOffice()">🚀 AI作戦会議を招集する</button>
-        <div class="loading" id="loader">⏳ ローカルGPU(GTX1080)でAIエージェントが思考中...</div>
+    <div id="auth-overlay" class="fixed inset-0 bg-slate-950 z-[9999] flex justify-center items-center flex-col px-4">
+        <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl text-center w-full max-w-sm border border-slate-700">
+            <div class="w-16 h-16 bg-sky-500/10 text-sky-400 rounded-full flex justify-center items-center text-2xl mx-auto mb-4 border border-sky-500/20">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 class="text-xl font-bold text-sky-400 mb-1">ISL AI-Office Security</h2>
+            <p class="text-xs text-slate-400 mb-6">Google認証アプリの6桁のコードを入力してください</p>
+            
+            <input type="text" id="two-factor-code" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-8]*"
+                   class="w-full p-4 text-3xl tracking-[12px] text-center rounded-xl border border-slate-600 bg-slate-900 text-white font-mono focus:outline-none focus:border-sky-500 mb-5">
+            
+            <button onclick="verifyTwoFactor()" 
+                    class="w-full p-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer">
+                ログインを承認
+            </button>
+            <p id="auth-error" class="text-rose-400 text-sm mt-4 hidden bg-rose-500/10 p-2 rounded-lg border border-rose-500/20"></p>
+        </div>
     </div>
 
-    <div id="results" style="display: none;">
-        <div class="card">
-            <h4>📊 顧客認識結果</h4>
-            <p id="custInfo" style="font-weight: bold; color: var(--primary); margin-top: 5px;"></p>
+    <header class="bg-slate-800/50 backdrop-blur border-b border-slate-700 sticky top-0 z-50 p-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">🏛️</span>
+            <div>
+                <h1 class="text-lg font-bold tracking-wide">ISL AI仮想オフィス</h1>
+                <p class="text-xs text-emerald-400 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+                    Gemma 4 MoE 常駐稼働中
+                </p>
+            </div>
         </div>
-        <div class="card agent-box cs">
-            <strong>💁‍♀️ CS担当 (AI) の分析</strong>
-            <p id="csRes" style="margin-top:5px; white-space: pre-wrap;"></p>
+        <button onclick="logout()" class="text-xs text-slate-400 hover:text-rose-400 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+            <i class="fa-solid fa-right-from-bracket mr-1"></i>ログアウト
+        </button>
+    </header>
+
+    <main class="flex-1 max-w-2xl w-full mx-auto p-4 flex flex-col gap-4 overflow-y-auto pb-32">
+        <div class="flex gap-3 items-start">
+            <div class="w-9 h-9 rounded-xl bg-sky-600 flex justify-center items-center shrink-0 shadow-md">🤖</div>
+            <div class="bg-slate-800 p-4 rounded-2xl rounded-tl-none max-w-[85%] shadow-md border border-slate-700/50 text-sm leading-relaxed">
+                川村ボス、ご苦労様です！ISL自動化仮想オフィスの受付窓口へようこそ。<br>
+                こちらに入力された相談や指示は、裏側で待機しているCS・技術・営業のAIスタッフ会議に直接転送され、全自動で見積書PDFまで構築されます。何でもご指示ください。
+            </div>
         </div>
-        <div class="card agent-box tech">
-            <strong>🛠️ 技術スタッフ (AI) の構成案</strong>
-            <p id="techRes" style="margin-top:5px; white-space: pre-wrap;"></p>
+        <div id="chat-logs" class="flex flex-col gap-4"></div>
+    </main>
+
+    <footer class="fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 p-4 pb-6">
+        <div class="max-w-2xl w-full mx-auto flex gap-2">
+            <input type="text" id="boss-input" placeholder="AIオフィスの従業員へ指示を出す..." 
+                   class="flex-1 bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500 shadow-inner">
+            <button onclick="sendPayload()" class="bg-sky-600 hover:bg-sky-500 active:scale-95 text-white w-12 h-12 rounded-xl flex justify-center items-center shadow-lg transition-all cursor-pointer">
+                <i class="fa-solid fa-paper-plane text-sm"></i>
+            </button>
         </div>
-        <div class="card agent-box sales">
-            <strong>💰 営業担当 (AI) の最終査定 & 明細</strong>
-            <p id="salesRes" style="margin-top:5px; white-space: pre-wrap;"></p>
-        </div>
-    </div>
+    </footer>
 
     <script>
-        async def launchAIOffice() {
-            const sender = document.getElementById('senderName').value;
-            const msg = document.getElementById('messageContent').value;
-            if(!msg) return alert('内容を入力してください');
+    // 1. ページを開いた瞬間、すでに2段階認証を通過しているかセッションをチェック
+    if (sessionStorage.getItem("isl_auth_token") === "isl-secure-access-granted") {
+        document.getElementById("auth-overlay").style.display = "none";
+    }
 
-            document.getElementById('loader').style.display = 'block';
-            document.getElementById('results').style.display = 'none';
-
-            // 🔗 トンネル経由で、ボスの自宅の新PC（Python）にアクセス
-            // ※ 次のステップで発行される「lhr.life」や「serveo.net」のURLに書き換えます
-            const tunnelUrl = "https://3507598f4b4e91.lhr.life"; 
-
-            try {
-                const response = await fetch(`${tunnelUrl}/api/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sender_name: sender, message: msg })
-                });
-                const data = await response.json();
-
-                if(data.status === 'success') {
-                    document.getElementById('custInfo').innerText = data.customer_info;
-                    document.getElementById('csRes').innerText = data.cs_response;
-                    document.getElementById('techRes').innerText = data.tech_response;
-                    document.getElementById('salesRes').innerText = data.sales_response;
-                    document.getElementById('results').style.display = 'block';
-                }
-            } catch (error) {
-                alert('新PCのPythonサーバーと通信できませんでした。トンネルが起動しているか確認してください。');
-            } finally {
-                document.getElementById('loader').style.display = 'none';
-            }
+    // 2. スマホのGoogle認証コードをPythonサーバー（ポート5000）で検証させる
+    async function verifyTwoFactor() {
+        const codeInput = document.getElementById("two-factor-code");
+        const errorEl = document.getElementById("auth-error");
+        
+        if (codeInput.value.length !== 6) {
+            showError("6桁の数字を入力してください");
+            return;
         }
+        
+        try {
+            const response = await fetch('http://localhost:5000/api/verify-2fa', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ code: codeInput.value })
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                // 🔐 認証成功！ロック画面を消滅させ、AI画面を解放
+                document.getElementById("auth-overlay").classList.add("hidden");
+                sessionStorage.setItem("isl_auth_token", result.token);
+                errorEl.classList.add("hidden");
+            } else {
+                showError("認証コードが一致しません。再入力してください。");
+            }
+        } catch (e) {
+            showError("バックエンドサーバー（ポート5000）に接続できません。Pythonの起動を確認してください。");
+        }
+    }
+
+    function showError(msg) {
+        const errorEl = document.getElementById("auth-error");
+        errorEl.textContent = msg;
+        errorEl.classList.remove("hidden");
+    }
+
+    // 3. ログアウト処理（セッション破棄）
+    function logout() {
+        sessionStorage.removeItem("isl_auth_token");
+        window.location.reload();
+    }
+
+    // 4. AIオフィスへのタスク送信処理（2FAトークンを添えて送信）
+    async function sendPayload() {
+        const inputEl = document.getElementById("boss-input");
+        const chatLogs = document.getElementById("chat-logs");
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        // ボスの発言を画面に即座に表示
+        chatLogs.innerHTML += `
+            <div class="flex gap-3 items-start justify-end">
+                <div class="bg-sky-600 text-white p-4 rounded-2xl rounded-tr-none max-w-[85%] shadow-md text-sm leading-relaxed">${text}</div>
+                <div class="w-9 h-9 rounded-xl bg-slate-700 flex justify-center items-center shrink-0 font-bold shadow-md">👑</div>
+            </div>
+        `;
+        inputEl.value = "";
+
+        try {
+            // Pythonバックエンドへリクエストを飛ばす
+            const response = await fetch('http://localhost:5000/api/boss-command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // 🛡️ リクエストヘッダーに2段階認証合格の証を刻印！
+                    'Authorization': 'Bearer ' + sessionStorage.getItem("isl_auth_token")
+                },
+                body: JSON.stringify({ message: text })
+            });
+            const resData = await response.json();
+            
+            // 従業員会議の開始通知を表示
+            chatLogs.innerHTML += `
+                <div class="flex gap-3 items-start">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-600 flex justify-center items-center shrink-0 shadow-md">🏢</div>
+                    <div class="bg-slate-800 p-4 rounded-2xl rounded-tl-none max-w-[85%] shadow-md border border-slate-700/50 text-xs text-slate-300 italic">
+                        ${resData.message || '指示を拝受しました。マルチエージェント作戦会議をDiscordで起票します。'}
+                    </div>
+                </div>
+            `;
+        } catch(e) {
+            chatLogs.innerHTML += `<div class="text-rose-400 text-xs text-center my-2">⚠️ 通信エラーが発生しました。</div>`;
+        }
+    }
     </script>
 </body>
 </html>
